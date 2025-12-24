@@ -388,6 +388,17 @@ public struct GrowthBookModel {
         return result.value ?? defaultValue
     }
     
+    @objc public func featuresFetchedSuccessfully(features: [String: Feature], isRemote: Bool) {
+        gbContext.features = features
+        evaluationLock.lock()
+        evalContext = Utils.initializeEvalContext(context: gbContext)
+        evaluationLock.unlock()
+        refreshStickyBucketService()
+        if isRemote {
+            refreshHandler?(nil)
+        }
+    }
+    
     /// The setEncryptedFeatures method takes an encrypted string with an encryption key and then decrypts it with the default method of decrypting or with a method of decrypting from the user
     /// - Parameters:
     ///   - encryptedString: String
@@ -402,6 +413,21 @@ public struct GrowthBookModel {
         evalContext = Utils.initializeEvalContext(context: gbContext)
         evaluationLock.unlock()
         refreshStickyBucketService()
+    }
+    
+    @objc public func featuresFetchFailed(error: SDKError, isRemote: Bool) {
+        if isRemote {
+            refreshHandler?(error)
+        }
+    }
+    
+    @objc public func savedGroupsFetchFailed(error: SDKError, isRemote: Bool) {
+        refreshHandler?(error)
+    }
+    
+    public func savedGroupsFetchedSuccessfully(savedGroups: JSON, isRemote: Bool) {
+        gbContext.savedGroups = savedGroups
+        refreshHandler?(nil)
     }
     
     /// If remote eval is enabled, send needed data to backend to proceed remote evaluation
@@ -515,32 +541,6 @@ public struct GrowthBookModel {
     @objc public func updateStreamingHostRequestHeaders(_ headers: [String: String]) {
         if let networkClient = networkDispatcher as? CoreNetworkClient {
             networkClient.streamingHostRequestHeaders = headers
-        }
-    }
-    
-    @objc func featuresFetchFailed(error: SDKError, isRemote: Bool) {
-        if isRemote {
-            refreshHandler?(false)
-        }
-    }
-    
-    @objc func savedGroupsFetchFailed(error: SDKError, isRemote: Bool) {
-        refreshHandler?(false)
-    }
-
-    public func savedGroupsFetchedSuccessfully(savedGroups: JSON, isRemote: Bool) {
-        gbContext.savedGroups = savedGroups
-        refreshHandler?(true)
-    }
-    
-    @objc func featuresFetchedSuccessfully(features: [String: Feature], isRemote: Bool) {
-        gbContext.features = features
-        evaluationLock.lock()
-        evalContext = Utils.initializeEvalContext(context: gbContext)
-        evaluationLock.unlock()
-        refreshStickyBucketService()
-        if isRemote {
-            refreshHandler?(true)
         }
     }
     
