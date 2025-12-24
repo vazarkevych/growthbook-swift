@@ -323,22 +323,19 @@ public struct GrowthBookModel {
         logger.minLevel = logLevel
         
         evaluationLock.lock()
-            
         // Initialize evalContext from contextManager
         evalContext = contextManager.getEvalContext()
-            
         evaluationLock.unlock()
-            evalContext = contextManager.getEvalContext()
-
-                    if let service = globalConfig.stickyBucketService,
-                       let docs = evalData.stickyBucketAssignmentDocs {
-                        for (_, doc) in docs {
-                            service.saveAssignments(doc: doc) { _ in
-                                // Ignore hydration errors
-                            }
-                        }
-                    }
-                    refreshStickyBucketService()
+        
+        if let service = globalConfig.stickyBucketService,
+           let docs = evalData.stickyBucketAssignmentDocs {
+            for (_, doc) in docs {
+                service.saveAssignments(doc: doc) { _ in
+                    // Ignore hydration errors
+                }
+            }
+        }
+        refreshStickyBucketService()
     }
     
     // Convenience init for backward compatibility
@@ -470,7 +467,7 @@ public struct GrowthBookModel {
         evaluationLock.unlock()
         refreshStickyBucketService()
         if isRemote {
-            refreshHandler?(true)
+            refreshHandler?(nil)
         }
     }
     
@@ -489,7 +486,7 @@ public struct GrowthBookModel {
     
     @objc public func featuresFetchFailed(error: SDKError, isRemote: Bool) {
         if isRemote {
-            refreshHandler?(false)
+            refreshHandler?(error)
         }
     }
     
@@ -498,14 +495,14 @@ public struct GrowthBookModel {
     }
     
     @objc public func savedGroupsFetchFailed(error: SDKError, isRemote: Bool) {
-        refreshHandler?(false)
+        refreshHandler?(error)
     }
     
     public func savedGroupsFetchedSuccessfully(savedGroups: JSON, isRemote: Bool) {
         contextManager.updateEvalData { data in
             data.savedGroups = savedGroups
         }
-        refreshHandler?(true)
+        refreshHandler?(nil)
     }
     
     /// If remote eval is enabled, send needed data to backend to proceed remote evaluation
