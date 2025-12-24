@@ -376,7 +376,7 @@ public struct GrowthBookModel {
             self.evalContext = Utils.initializeEvalContext(context: self.gbContext)
             self.refreshStickyBucketService()
             if isRemote {
-                self.refreshHandler?(true)
+                self.refreshHandler?(nil)
             }
         }
     }
@@ -396,7 +396,7 @@ public struct GrowthBookModel {
     
     @objc public func featuresFetchFailed(error: SDKError, isRemote: Bool) {
         if isRemote {
-            refreshHandler?(false)
+            refreshHandler?(error)
         }
     }
     
@@ -446,14 +446,14 @@ public struct GrowthBookModel {
     }
     
     @objc public func savedGroupsFetchFailed(error: SDKError, isRemote: Bool) {
-        refreshHandler?(false)
+        refreshHandler?(error)
     }
     
     public func savedGroupsFetchedSuccessfully(savedGroups: JSON, isRemote: Bool) {
         syncQueue.async { [weak self] in
             guard let self = self else { return }
             self.gbContext.savedGroups = savedGroups
-            self.refreshHandler?(true)
+            self.refreshHandler?(nil)
         }
     }
     
