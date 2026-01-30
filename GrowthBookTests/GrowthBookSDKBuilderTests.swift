@@ -143,7 +143,8 @@ class GrowthBookSDKBuilderTests: XCTestCase {
                                             attributes: testAttributes,
                                             trackingCallback: { _, _ in },
                                             refreshHandler: nil,
-                                            backgroundSync: false).setRefreshHandler(refreshHandler: { _ in
+                                            backgroundSync: false,
+                                            ttlSeconds:0).setRefreshHandler(refreshHandler: { _ in
             DispatchQueue.main.async {
                 refreshFlag.isRefreshed = true
                 expectation.fulfill()
@@ -243,6 +244,7 @@ class GrowthBookSDKBuilderTests: XCTestCase {
                                             backgroundSync: false).setRefreshHandler(refreshHandler: { _ in
 
         }).setNetworkDispatcher(networkDispatcher: MockNetworkClient(successResponse: MockResponse().successResponse, error: nil))
+            .setSystemCacheDirectory(.applicationSupport)
             .initializer()
         
         let fileName = "gb-features.txt"
