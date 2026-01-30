@@ -37,7 +37,7 @@ class GrowthBookSDKBuilderTests: XCTestCase {
     }
     
     func testApiURL() throws {
-        var gbContext = Context(apiHost: testApiHost,
+        let gbContext = Context(apiHost: testApiHost,
                                 streamingHost: testStreamingHost,
                                 clientKey: testClientKey,
                                 encryptionKey: nil,
@@ -123,7 +123,7 @@ class GrowthBookSDKBuilderTests: XCTestCase {
                                             encryptionKey: "3tfeoyW0wlo47bDnbWDkxg==",
                                             attributes: testAttributes,
                                             trackingCallback: { _, _ in },
-                                            refreshHandler: nil, 
+                                            refreshHandler: nil,
                                             backgroundSync: false).setRefreshHandler(refreshHandler: { _ in
             DispatchQueue.main.async {
                 expectation.fulfill()
@@ -148,7 +148,8 @@ class GrowthBookSDKBuilderTests: XCTestCase {
                                             attributes: testAttributes,
                                             trackingCallback: { _, _ in },
                                             refreshHandler: nil,
-                                            backgroundSync: false).setRefreshHandler(refreshHandler: { _ in
+                                            backgroundSync: false,
+                                            ttlSeconds:0).setRefreshHandler(refreshHandler: { _ in
             DispatchQueue.main.async {
                 refreshFlag.isRefreshed = true
                 expectation.fulfill()
@@ -226,7 +227,9 @@ class GrowthBookSDKBuilderTests: XCTestCase {
         let decoder = JSONDecoder()
         let encryptedFeatures = "vMSg2Bj/IurObDsWVmvkUg==.L6qtQkIzKDoE2Dix6IAKDcVel8PHUnzJ7JjmLjFZFQDqidRIoCxKmvxvUj2kTuHFTQ3/NJ3D6XhxhXXv2+dsXpw5woQf0eAgqrcxHrbtFORs18tRXRZza7zqgzwvcznx"
         let expectedResult = "{\"testfeature1\":{\"defaultValue\":true,\"rules\":[{\"condition\":{\"id\":\"1234\"},\"force\":false}]}}"
+                
         sdkInstance.setEncryptedFeatures(encryptedString: encryptedFeatures, encryptionKey: testKeyString)
+        
         guard
             let dataExpectedResult = expectedResult.data(using: .utf8),
             let features = try? decoder.decode([String: Feature].self, from: dataExpectedResult)
@@ -234,8 +237,13 @@ class GrowthBookSDKBuilderTests: XCTestCase {
             XCTFail()
             return
         }
-        XCTAssertTrue(sdkInstance.gbContext.features["testfeature1"]?.rules?[0].condition == features["testfeature1"]?.rules?[0].condition)
-        XCTAssertTrue(sdkInstance.gbContext.features["testfeature1"]?.rules?[0].force == features["testfeature1"]?.rules?[0].force)
+        
+        if let feature = sdkInstance.getGBContext().features["testfeature1"] {
+            XCTAssertTrue(feature.rules?[0].condition == feature.rules?[0].condition)
+            XCTAssertTrue(feature.rules?[0].force == feature.rules?[0].force)
+        } else {
+            XCTFail()
+        }
     }
     
     func testClearCache() throws {
@@ -248,6 +256,7 @@ class GrowthBookSDKBuilderTests: XCTestCase {
                                             backgroundSync: false).setRefreshHandler(refreshHandler: { _ in
 
         }).setNetworkDispatcher(networkDispatcher: MockNetworkClient(successResponse: MockResponse().successResponse, error: nil))
+            .setSystemCacheDirectory(.applicationSupport)
             .initializer()
         
         let fileName = "gb-features.txt"
@@ -303,7 +312,7 @@ class GrowthBookSDKBuilderTests: XCTestCase {
         sdkInstance.setAttributes(attributes: ["name": "Alice"])
         try sdkInstance.appendAttributes(attributes: ["age": 30])
         
-        let result = sdkInstance.gbContext.attributes
+        let result = sdkInstance.getGBContext().attributes
         XCTAssertEqual(result["name"].stringValue, "Alice")
         XCTAssertEqual(result["age"].intValue, 30)
         
@@ -311,7 +320,7 @@ class GrowthBookSDKBuilderTests: XCTestCase {
         sdkInstance.setAttributes(attributes: ["user": ["id": 1, "name": "Alice"]])
         try sdkInstance.appendAttributes(attributes: ["user": ["name": "Bob", "age": 25]])
         
-        let user = sdkInstance.gbContext.attributes["user"]
+        let user = sdkInstance.getGBContext().attributes["user"]
         XCTAssertEqual(user["id"].intValue, 1)
         XCTAssertEqual(user["name"].stringValue, "Bob")
         XCTAssertEqual(user["age"].intValue, 25)
@@ -320,7 +329,7 @@ class GrowthBookSDKBuilderTests: XCTestCase {
         sdkInstance.setAttributes(attributes: ["user": ["roles": ["admin", "editor"]]])
         try sdkInstance.appendAttributes(attributes: ["user": ["roles": ["viewer"]]])
 
-        let roles = sdkInstance.gbContext.attributes["user"]["roles"].arrayValue.map { $0.stringValue }
+        let roles = sdkInstance.getGBContext().attributes["user"]["roles"].arrayValue.map { $0.stringValue }
         XCTAssertEqual(roles, ["admin", "editor", "viewer"])
     }
 }
