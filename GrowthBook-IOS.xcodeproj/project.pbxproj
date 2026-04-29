@@ -23,6 +23,9 @@
 		843316012FA22A1B00D1C388 /* DecryptionUtilsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 843315F92FA22A1B00D1C388 /* DecryptionUtilsTests.swift */; };
 		843316062FA252B300D1C388 /* GrowthBookSDKTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 843316052FA252B300D1C388 /* GrowthBookSDKTests.swift */; };
 		843316082FA2704B00D1C388 /* FeatureModelInitJsonTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 843316072FA2704B00D1C388 /* FeatureModelInitJsonTests.swift */; };
+		8433160C2FA2B6AD00D1C388 /* ExtensionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8433160A2FA2B6AD00D1C388 /* ExtensionsTests.swift */; };
+		8433160D2FA2B6AD00D1C388 /* UtilsStickyBucketTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8433160B2FA2B6AD00D1C388 /* UtilsStickyBucketTests.swift */; };
+		8433160E2FA2B6AD00D1C388 /* ConstantsAndModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 843316092FA2B6AD00D1C388 /* ConstantsAndModelTests.swift */; };
 		844838362E054AD200784A36 /* NetworkRetryHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 844838342E054AD200784A36 /* NetworkRetryHandler.swift */; };
 		846A7A562D6CAE56007CCFD1 /* GlobalContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 846A7A552D6CAE53007CCFD1 /* GlobalContext.swift */; };
 		8483E6FA2ABC60B900306B55 /* DecryptionUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8483E6F92ABC60B900306B55 /* DecryptionUtils.swift */; };
@@ -108,6 +111,9 @@
 		843315FC2FA22A1B00D1C388 /* UtilsExtendedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UtilsExtendedTests.swift; sourceTree = "<group>"; };
 		843316052FA252B300D1C388 /* GrowthBookSDKTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrowthBookSDKTests.swift; sourceTree = "<group>"; };
 		843316072FA2704B00D1C388 /* FeatureModelInitJsonTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureModelInitJsonTests.swift; sourceTree = "<group>"; };
+		843316092FA2B6AD00D1C388 /* ConstantsAndModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConstantsAndModelTests.swift; sourceTree = "<group>"; };
+		8433160A2FA2B6AD00D1C388 /* ExtensionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionsTests.swift; sourceTree = "<group>"; };
+		8433160B2FA2B6AD00D1C388 /* UtilsStickyBucketTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UtilsStickyBucketTests.swift; sourceTree = "<group>"; };
 		843363F627F845EB0072BFDC /* GrowthBookSDK.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrowthBookSDK.swift; sourceTree = "<group>"; };
 		843363F827F845EB0072BFDC /* NetworkClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkClient.swift; sourceTree = "<group>"; };
 		843363FA27F845EB0072BFDC /* FeaturesDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeaturesDataModel.swift; sourceTree = "<group>"; };
@@ -302,6 +308,9 @@
 		849114BE280DA71E00C0B9A5 /* GrowthBookTests */ = {
 			isa = PBXGroup;
 			children = (
+				843316092FA2B6AD00D1C388 /* ConstantsAndModelTests.swift */,
+				8433160A2FA2B6AD00D1C388 /* ExtensionsTests.swift */,
+				8433160B2FA2B6AD00D1C388 /* UtilsStickyBucketTests.swift */,
 				843316072FA2704B00D1C388 /* FeatureModelInitJsonTests.swift */,
 				843316052FA252B300D1C388 /* GrowthBookSDKTests.swift */,
 				843315F82FA22A1B00D1C388 /* CommonTests.swift */,
@@ -494,6 +503,9 @@
 				843315FD2FA22A1B00D1C388 /* UtilsExtendedTests.swift in Sources */,
 				843315FE2FA22A1B00D1C388 /* FeatureModelTests.swift in Sources */,
 				843315FF2FA22A1B00D1C388 /* CommonTests.swift in Sources */,
+				8433160C2FA2B6AD00D1C388 /* ExtensionsTests.swift in Sources */,
+				8433160D2FA2B6AD00D1C388 /* UtilsStickyBucketTests.swift in Sources */,
+				8433160E2FA2B6AD00D1C388 /* ConstantsAndModelTests.swift in Sources */,
 				843316002FA22A1B00D1C388 /* StickyBucketServiceTests.swift in Sources */,
 				843316012FA22A1B00D1C388 /* DecryptionUtilsTests.swift in Sources */,
 				843316082FA2704B00D1C388 /* FeatureModelInitJsonTests.swift in Sources */,
