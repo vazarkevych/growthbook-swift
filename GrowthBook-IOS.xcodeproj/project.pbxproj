@@ -22,6 +22,7 @@
 		843316002FA22A1B00D1C388 /* StickyBucketServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 843315FB2FA22A1B00D1C388 /* StickyBucketServiceTests.swift */; };
 		843316012FA22A1B00D1C388 /* DecryptionUtilsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 843315F92FA22A1B00D1C388 /* DecryptionUtilsTests.swift */; };
 		843316062FA252B300D1C388 /* GrowthBookSDKTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 843316052FA252B300D1C388 /* GrowthBookSDKTests.swift */; };
+		843316082FA2704B00D1C388 /* FeatureModelInitJsonTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 843316072FA2704B00D1C388 /* FeatureModelInitJsonTests.swift */; };
 		844838362E054AD200784A36 /* NetworkRetryHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 844838342E054AD200784A36 /* NetworkRetryHandler.swift */; };
 		846A7A562D6CAE56007CCFD1 /* GlobalContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 846A7A552D6CAE53007CCFD1 /* GlobalContext.swift */; };
 		8483E6FA2ABC60B900306B55 /* DecryptionUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8483E6F92ABC60B900306B55 /* DecryptionUtils.swift */; };
@@ -106,6 +107,7 @@
 		843315FB2FA22A1B00D1C388 /* StickyBucketServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickyBucketServiceTests.swift; sourceTree = "<group>"; };
 		843315FC2FA22A1B00D1C388 /* UtilsExtendedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UtilsExtendedTests.swift; sourceTree = "<group>"; };
 		843316052FA252B300D1C388 /* GrowthBookSDKTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrowthBookSDKTests.swift; sourceTree = "<group>"; };
+		843316072FA2704B00D1C388 /* FeatureModelInitJsonTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureModelInitJsonTests.swift; sourceTree = "<group>"; };
 		843363F627F845EB0072BFDC /* GrowthBookSDK.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrowthBookSDK.swift; sourceTree = "<group>"; };
 		843363F827F845EB0072BFDC /* NetworkClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkClient.swift; sourceTree = "<group>"; };
 		843363FA27F845EB0072BFDC /* FeaturesDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeaturesDataModel.swift; sourceTree = "<group>"; };
@@ -300,6 +302,7 @@
 		849114BE280DA71E00C0B9A5 /* GrowthBookTests */ = {
 			isa = PBXGroup;
 			children = (
+				843316072FA2704B00D1C388 /* FeatureModelInitJsonTests.swift */,
 				843316052FA252B300D1C388 /* GrowthBookSDKTests.swift */,
 				843315F82FA22A1B00D1C388 /* CommonTests.swift */,
 				843315F92FA22A1B00D1C388 /* DecryptionUtilsTests.swift */,
@@ -493,6 +496,7 @@
 				843315FF2FA22A1B00D1C388 /* CommonTests.swift in Sources */,
 				843316002FA22A1B00D1C388 /* StickyBucketServiceTests.swift in Sources */,
 				843316012FA22A1B00D1C388 /* DecryptionUtilsTests.swift in Sources */,
+				843316082FA2704B00D1C388 /* FeatureModelInitJsonTests.swift in Sources */,
 				849114CB280DA73100C0B9A5 /* TestHelper.swift in Sources */,
 				849114CC280DA73100C0B9A5 /* UtilsTests.swift in Sources */,
 				84E82C3D2BD2AF8F003F000B /* StickyBucketingTests.swift in Sources */,
