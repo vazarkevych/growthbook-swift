@@ -283,7 +283,6 @@ class GrowthBookSDKTests: XCTestCase {
     func testFeaturesFetchFailedCallsRefreshHandlerWithError() {
         let exp = expectation(description: "refreshHandler called with error")
         exp.assertForOverFulfill = false
-        var receivedError: SDKError?
 
         let cachingManager = CachingManager(apiKey: "isolated-error-test")
         cachingManager.clearCache()
@@ -298,16 +297,12 @@ class GrowthBookSDKTests: XCTestCase {
             ttlSeconds: 0,
             cachingManager: cachingManager,
             refreshHandler: { error in
-                if let error = error {
-                    receivedError = error
-                    exp.fulfill()
-                }
+                if error != nil { exp.fulfill() }
             }
         ).initializer()
 
         _ = sdk
         wait(for: [exp], timeout: 2.0)
-        XCTAssertNotNil(receivedError)
     }
 
     // MARK: - savedGroupsFetchedSuccessfully updates context
