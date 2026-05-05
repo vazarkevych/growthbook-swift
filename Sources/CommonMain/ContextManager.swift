@@ -191,7 +191,8 @@ import Foundation
       stickyBucketService: globalConfig.stickyBucketService,
       isQaMode: globalConfig.isQaMode,
       url: evalData.url,
-      trackingClosure: globalConfig.trackingClosure
+      trackingClosure: globalConfig.trackingClosure,
+      plugins: globalConfig.plugins
     )
     
     // GlobalContext is created from evalData.features and evalData.savedGroups

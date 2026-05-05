@@ -48,8 +48,10 @@ import Foundation
   public let trackingClosure: (Experiment, ExperimentResult) -> Void
   /// Sticky bucketing is enabled if stickyBucketService is available
   public let stickyBucketService: StickyBucketServiceProtocol?
+  /// Plugins that receive experiment and feature evaluation events.
+  public let plugins: [GrowthBookPlugin]
 
-  @objc public init(apiHost: String?,
+  public init(apiHost: String?,
     clientKey: String?,
     encryptionKey: String?,
     isEnabled: Bool,
@@ -58,7 +60,8 @@ import Foundation
     stableSession: Bool = false,
     remoteEval: Bool = false,
     trackingClosure: @escaping (Experiment, ExperimentResult) -> Void,
-    stickyBucketService: StickyBucketServiceProtocol? = nil) {
+    stickyBucketService: StickyBucketServiceProtocol? = nil,
+    plugins: [GrowthBookPlugin] = []) {
     self.apiHost = apiHost
     self.clientKey = clientKey
     self.encryptionKey = encryptionKey
@@ -69,5 +72,6 @@ import Foundation
     self.remoteEval = remoteEval
     self.trackingClosure = trackingClosure
     self.stickyBucketService = stickyBucketService
+    self.plugins = plugins
   }
 }

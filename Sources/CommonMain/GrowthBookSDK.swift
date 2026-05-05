@@ -263,6 +263,14 @@ protocol GrowthBookProtocol: AnyObject {
         return self
     }
 
+    /// Registers a plugin that will receive experiment and feature evaluation events.
+    /// - Parameter plugin: Any object conforming to `GrowthBookPlugin`.
+    /// - Returns: GrowthBookBuilder
+    public func addPlugin(_ plugin: GrowthBookPlugin) -> GrowthBookBuilder {
+        growthBookBuilderModel.plugins.append(plugin)
+        return self
+    }
+
     @objc public func initializer() -> GrowthBookSDK {
         let globalConfig = GlobalConfig(
             apiHost: growthBookBuilderModel.apiHost,
@@ -274,7 +282,8 @@ protocol GrowthBookProtocol: AnyObject {
             stableSession: growthBookBuilderModel.stableSession,
             remoteEval: growthBookBuilderModel.remoteEval,
             trackingClosure: growthBookBuilderModel.trackingClosure,
-            stickyBucketService: growthBookBuilderModel.stickyBucketService
+            stickyBucketService: growthBookBuilderModel.stickyBucketService,
+            plugins: growthBookBuilderModel.plugins
         )
 
         // TODO: extract parsePreloadedFeatures() and resolveInitialFeatures() helpers to
@@ -384,6 +393,11 @@ protocol GrowthBookProtocol: AnyObject {
     /// True once the session's initial features have been applied.
     /// Set once and never reset — used as the stableSession latch.
     private var sessionEstablished: Bool = false
+    private var plugins: [GrowthBookPlugin] = []
+
+    deinit {
+        plugins.forEach { $0.close() }
+    }
 
     init(contextManager: ContextManager,
          refreshHandler: CacheRefreshHandler? = nil,
@@ -442,6 +456,10 @@ protocol GrowthBookProtocol: AnyObject {
             }
         }
         refreshStickyBucketService()
+
+        plugins = globalConfig.plugins
+        let clientKey = globalConfig.clientKey ?? ""
+        plugins.forEach { $0.initialize(clientKey: clientKey) }
     }
 
     // Convenience init for backward compatibility
@@ -683,6 +701,7 @@ protocol GrowthBookProtocol: AnyObject {
         let context = contextManager.getEvalContext()
         let result = FeatureEvaluator(context: context, featureKey: id).evaluateFeature()
         contextManager.syncFromEvaluation(context)
+        plugins.forEach { $0.onFeatureEvaluated(featureKey: id, result: result) }
         return result
     }
 

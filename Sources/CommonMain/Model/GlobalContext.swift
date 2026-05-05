@@ -29,7 +29,9 @@ import Foundation
     public var stickyBucketAssignmentDocs: [String: StickyAssignmentsDocument]?
     /// Features that uses sticky bucketing
     public var stickyBucketIdentifierAttributes: [String]?
-    
+    /// Plugins that receive experiment and feature evaluation events.
+    public let plugins: [GrowthBookPlugin]
+
     public var url: String?
 
     init(isEnabled: Bool,
@@ -38,13 +40,15 @@ import Foundation
          stickyBucketService: StickyBucketServiceProtocol? = nil,
          isQaMode: Bool,
          url: String? = nil,
-         trackingClosure: @escaping (Experiment, ExperimentResult) -> Void) {
+         trackingClosure: @escaping (Experiment, ExperimentResult) -> Void,
+         plugins: [GrowthBookPlugin] = []) {
         self.isEnabled = isEnabled
         self.stickyBucketAssignmentDocs = stickyBucketAssignmentDocs
         self.stickyBucketIdentifierAttributes = stickyBucketIdentifierAttributes
         self.stickyBucketService = stickyBucketService
         self.isQaMode = isQaMode
         self.trackingClosure = trackingClosure
+        self.plugins = plugins
         self.url = url
     }
 }
