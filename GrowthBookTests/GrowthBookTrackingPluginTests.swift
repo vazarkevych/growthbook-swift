@@ -318,7 +318,7 @@ final class GrowthBookTrackingPluginTests: XCTestCase {
     func testRequestSentToCorrectEndpoint() {
         let expectation = expectation(description: "correct endpoint")
         MockURLProtocol.requestHandler = { request in
-            XCTAssertEqual(request.url?.absoluteString, "\(GrowthBookTrackingPlugin.defaultIngestorHost)/events")
+            XCTAssertEqual(request.url?.absoluteString, "\(GrowthBookTrackingPlugin.defaultIngestorHost)/track")
             XCTAssertEqual(request.httpMethod, "POST")
             XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json")
             XCTAssertTrue(request.value(forHTTPHeaderField: "User-Agent")?.hasPrefix("growthbook-swift-sdk/") == true)

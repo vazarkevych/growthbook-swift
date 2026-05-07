@@ -4,7 +4,7 @@ import Foundation
 /// and POSTs them to the GrowthBook ingest endpoint.
 ///
 /// **Wire contract**
-/// - Endpoint:  POST `{ingestorHost}/events`
+/// - Endpoint:  POST `{ingestorHost}/track`
 /// - Default host: `https://us1.gb-ingest.com`
 /// - Body: `{ "client_key": "...", "events": [...] }`
 /// - Headers: `Content-Type: application/json`, `User-Agent: growthbook-swift-sdk/{version}`
@@ -169,7 +169,7 @@ public final class GrowthBookTrackingPlugin: GrowthBookPlugin {
 
         guard
             let body = try? JSONEncoder().encode(payload),
-            let url = URL(string: "\(ingestorHost)/events")
+            let url = URL(string: "\(ingestorHost)/track")
         else {
             completion?()
             return
