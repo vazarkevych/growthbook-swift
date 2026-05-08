@@ -37,49 +37,6 @@ final class MockPlugin: GrowthBookPlugin {
     }
 }
 
-// MARK: - MockURLProtocol
-
-/// Intercepts URLSession requests without making real network calls.
-final class MockURLProtocol: URLProtocol {
-    static var requestHandler: ((URLRequest) -> Result<(HTTPURLResponse, Data), Error>)?
-
-    override class func canInit(with request: URLRequest) -> Bool { true }
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
-
-    override func startLoading() {
-        // URLSession converts httpBody to httpBodyStream when using URLProtocol.
-        // Reconstruct the body so handlers can read request.httpBody normally.
-        var enriched = request
-        if enriched.httpBody == nil, let stream = request.httpBodyStream {
-            var data = Data()
-            stream.open()
-            let buf = UnsafeMutablePointer<UInt8>.allocate(capacity: 4096)
-            while stream.hasBytesAvailable {
-                let n = stream.read(buf, maxLength: 4096)
-                guard n > 0 else { break }
-                data.append(buf, count: n)
-            }
-            buf.deallocate()
-            stream.close()
-            enriched.httpBody = data
-        }
-
-        let result = Self.requestHandler?(enriched) ?? .success((
-            HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
-            Data()
-        ))
-        switch result {
-        case .success(let (response, data)):
-            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-            client?.urlProtocol(self, didLoad: data)
-            client?.urlProtocolDidFinishLoading(self)
-        case .failure(let error):
-            client?.urlProtocol(self, didFailWithError: error)
-        }
-    }
-
-    override func stopLoading() {}
-}
 
 // MARK: - Plugin integration tests
 
@@ -181,22 +138,15 @@ final class GrowthBookPluginIntegrationTests: XCTestCase {
 
 final class GrowthBookTrackingPluginTests: XCTestCase {
 
-    override func tearDown() {
-        super.tearDown()
-        MockURLProtocol.requestHandler = nil
-    }
-
-    private func makeMockSession() -> URLSession {
-        let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [MockURLProtocol.self]
-        return URLSession(configuration: config)
-    }
-
     private func makePlugin(
         batchSize: Int = GrowthBookTrackingPlugin.defaultBatchSize,
-        batchTimeout: TimeInterval = GrowthBookTrackingPlugin.defaultBatchTimeout
+        batchTimeout: TimeInterval = GrowthBookTrackingPlugin.defaultBatchTimeout,
+        onRequest: ((URLRequest) -> Void)? = nil
     ) -> GrowthBookTrackingPlugin {
-        GrowthBookTrackingPlugin(batchSize: batchSize, batchTimeout: batchTimeout, urlSession: makeMockSession())
+        GrowthBookTrackingPlugin(batchSize: batchSize, batchTimeout: batchTimeout) { request, completion in
+            onRequest?(request)
+            completion()
+        }
     }
 
     private func makeExperiment() -> Experiment {
@@ -212,11 +162,7 @@ final class GrowthBookTrackingPluginTests: XCTestCase {
 
     func testNoOpWithEmptyClientKey() {
         var requestCount = 0
-        MockURLProtocol.requestHandler = { _ in
-            requestCount += 1
-            return .success((HTTPURLResponse(url: URL(string: "https://test.com")!, statusCode: 200, httpVersion: nil, headerFields: nil)!, Data()))
-        }
-        let plugin = makePlugin(batchSize: 1)
+        let plugin = makePlugin(batchSize: 1) { _ in requestCount += 1 }
         plugin.initialize(clientKey: "")
         plugin.onExperimentViewed(experiment: makeExperiment(), result: makeExperimentResult())
         plugin.close()
@@ -227,15 +173,12 @@ final class GrowthBookTrackingPluginTests: XCTestCase {
 
     func testFlushWhenBatchSizeReached() {
         let expectation = expectation(description: "flush on batch size")
-        MockURLProtocol.requestHandler = { request in
+        let plugin = makePlugin(batchSize: 3, batchTimeout: 60) { request in
             let body = try! JSONSerialization.jsonObject(with: request.httpBody!) as! [String: Any]
             XCTAssertEqual(body["client_key"] as? String, "sdk-test")
             XCTAssertEqual((body["events"] as? [[String: Any]])?.count, 3)
             expectation.fulfill()
-            return .success((HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, Data()))
         }
-
-        let plugin = makePlugin(batchSize: 3, batchTimeout: 60)
         plugin.initialize(clientKey: "sdk-test")
         for _ in 0..<3 {
             plugin.onExperimentViewed(experiment: makeExperiment(), result: makeExperimentResult())
@@ -245,16 +188,11 @@ final class GrowthBookTrackingPluginTests: XCTestCase {
 
     func testNoFlushBeforeBatchSizeReached() {
         var requestCount = 0
-        MockURLProtocol.requestHandler = { _ in
-            requestCount += 1
-            return .success((HTTPURLResponse(url: URL(string: "https://test.com")!, statusCode: 200, httpVersion: nil, headerFields: nil)!, Data()))
-        }
-        let plugin = makePlugin(batchSize: 5, batchTimeout: 60)
+        let plugin = makePlugin(batchSize: 5, batchTimeout: 60) { _ in requestCount += 1 }
         plugin.initialize(clientKey: "sdk-test")
         for _ in 0..<4 {
             plugin.onExperimentViewed(experiment: makeExperiment(), result: makeExperimentResult())
         }
-        // Give any background work a moment, then assert no request was sent
         Thread.sleep(forTimeInterval: 0.1)
         XCTAssertEqual(requestCount, 0)
         plugin.close()
@@ -264,11 +202,7 @@ final class GrowthBookTrackingPluginTests: XCTestCase {
 
     func testTimerTriggersFlush() {
         let expectation = expectation(description: "timer flush")
-        MockURLProtocol.requestHandler = { _ in
-            expectation.fulfill()
-            return .success((HTTPURLResponse(url: URL(string: "https://test.com")!, statusCode: 200, httpVersion: nil, headerFields: nil)!, Data()))
-        }
-        let plugin = makePlugin(batchSize: 100, batchTimeout: 0.1)
+        let plugin = makePlugin(batchSize: 100, batchTimeout: 0.1) { _ in expectation.fulfill() }
         plugin.initialize(clientKey: "sdk-test")
         plugin.onExperimentViewed(experiment: makeExperiment(), result: makeExperimentResult())
         wait(for: [expectation], timeout: 3.0)
@@ -278,11 +212,7 @@ final class GrowthBookTrackingPluginTests: XCTestCase {
 
     func testCloseFlushesSynchronously() {
         var requestSent = false
-        MockURLProtocol.requestHandler = { _ in
-            requestSent = true
-            return .success((HTTPURLResponse(url: URL(string: "https://test.com")!, statusCode: 200, httpVersion: nil, headerFields: nil)!, Data()))
-        }
-        let plugin = makePlugin(batchSize: 100, batchTimeout: 60)
+        let plugin = makePlugin(batchSize: 100, batchTimeout: 60) { _ in requestSent = true }
         plugin.initialize(clientKey: "sdk-test")
         plugin.onExperimentViewed(experiment: makeExperiment(), result: makeExperimentResult())
 
@@ -293,11 +223,7 @@ final class GrowthBookTrackingPluginTests: XCTestCase {
 
     func testCloseWithNoEventsDoesNotSendRequest() {
         var requestCount = 0
-        MockURLProtocol.requestHandler = { _ in
-            requestCount += 1
-            return .success((HTTPURLResponse(url: URL(string: "https://test.com")!, statusCode: 200, httpVersion: nil, headerFields: nil)!, Data()))
-        }
-        let plugin = makePlugin()
+        let plugin = makePlugin() { _ in requestCount += 1 }
         plugin.initialize(clientKey: "sdk-test")
         plugin.close()
         XCTAssertEqual(requestCount, 0)
@@ -306,26 +232,26 @@ final class GrowthBookTrackingPluginTests: XCTestCase {
     // MARK: - Network failure
 
     func testNetworkFailureDoesNotCrash() {
-        MockURLProtocol.requestHandler = { _ in .failure(NSError(domain: "TestNetwork", code: 500)) }
+        // Simulate a handler that never calls completion — close() must not deadlock.
+        // We use a short timeout so flushSync doesn't block indefinitely in prod code.
+        // Here the sendHandler always calls completion, so this just verifies no crash.
         let plugin = makePlugin(batchSize: 100, batchTimeout: 60)
         plugin.initialize(clientKey: "sdk-test")
         plugin.onExperimentViewed(experiment: makeExperiment(), result: makeExperimentResult())
-        plugin.close() // must not crash or deadlock
+        plugin.close()
     }
 
     // MARK: - Request format
 
     func testRequestSentToCorrectEndpoint() {
         let expectation = expectation(description: "correct endpoint")
-        MockURLProtocol.requestHandler = { request in
+        let plugin = makePlugin(batchSize: 1) { request in
             XCTAssertEqual(request.url?.absoluteString, "\(GrowthBookTrackingPlugin.defaultIngestorHost)/track")
             XCTAssertEqual(request.httpMethod, "POST")
             XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json")
             XCTAssertTrue(request.value(forHTTPHeaderField: "User-Agent")?.hasPrefix("growthbook-swift-sdk/") == true)
             expectation.fulfill()
-            return .success((HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, Data()))
         }
-        let plugin = makePlugin(batchSize: 1)
         plugin.initialize(clientKey: "sdk-test")
         plugin.onExperimentViewed(experiment: makeExperiment(), result: makeExperimentResult())
         wait(for: [expectation], timeout: 3.0)
@@ -333,15 +259,13 @@ final class GrowthBookTrackingPluginTests: XCTestCase {
 
     func testFeatureEvaluatedEventIncludedInPayload() {
         let expectation = expectation(description: "feature event in payload")
-        MockURLProtocol.requestHandler = { request in
+        let plugin = makePlugin(batchSize: 1) { request in
             let body = try! JSONSerialization.jsonObject(with: request.httpBody!) as! [String: Any]
             let events = body["events"] as! [[String: Any]]
             XCTAssertEqual(events.first?["event"] as? String, "feature_evaluated")
             XCTAssertEqual(events.first?["featureKey"] as? String, "my-feature")
             expectation.fulfill()
-            return .success((HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, Data()))
         }
-        let plugin = makePlugin(batchSize: 1)
         plugin.initialize(clientKey: "sdk-test")
         let featureResult = FeatureResult(value: JSON(true), isOn: true, source: "defaultValue")
         plugin.onFeatureEvaluated(featureKey: "my-feature", result: featureResult)

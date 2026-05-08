@@ -41,6 +41,8 @@ public final class GrowthBookTrackingPlugin: GrowthBookPlugin {
     private let timerQueue = DispatchQueue(label: "com.growthbook.tracking-plugin.timer", qos: .utility)
 
     private let urlSession: URLSession
+    // Non-nil only in tests — bypasses URLSession entirely.
+    private let sendHandler: ((URLRequest, @escaping () -> Void) -> Void)?
 
     // MARK: - Init
 
@@ -57,19 +59,22 @@ public final class GrowthBookTrackingPlugin: GrowthBookPlugin {
         config.urlCache = nil
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
         self.urlSession = URLSession(configuration: config)
+        self.sendHandler = nil
     }
 
-    // Internal — allows tests to inject a URLSession with a mock URLProtocol.
+    // Internal — lets tests intercept requests without URLProtocol.
     init(
         ingestorHost: String = defaultIngestorHost,
         batchSize: Int = defaultBatchSize,
         batchTimeout: TimeInterval = defaultBatchTimeout,
-        urlSession: URLSession
+        sendHandler: @escaping (URLRequest, @escaping () -> Void) -> Void
     ) {
         self.ingestorHost = ingestorHost
         self.batchSize = batchSize
         self.batchTimeout = batchTimeout
-        self.urlSession = urlSession
+        let config = URLSessionConfiguration.default
+        self.urlSession = URLSession(configuration: config)
+        self.sendHandler = sendHandler
     }
 
     deinit {
@@ -181,8 +186,10 @@ public final class GrowthBookTrackingPlugin: GrowthBookPlugin {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("growthbook-swift-sdk/\(Self.sdkVersion)", forHTTPHeaderField: "User-Agent")
 
-        urlSession.dataTask(with: request) { _, _, _ in
-            completion?()
-        }.resume()
+        if let handler = sendHandler {
+            handler(request) { completion?() }
+        } else {
+            urlSession.dataTask(with: request) { _, _, _ in completion?() }.resume()
+        }
     }
 }
