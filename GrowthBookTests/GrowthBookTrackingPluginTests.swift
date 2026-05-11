@@ -206,6 +206,7 @@ final class GrowthBookTrackingPluginTests: XCTestCase {
         plugin.initialize(clientKey: "sdk-test")
         plugin.onExperimentViewed(experiment: makeExperiment(), result: makeExperimentResult())
         wait(for: [expectation], timeout: 3.0)
+        withExtendedLifetime(plugin) {}
     }
 
     // MARK: - close() synchronous flush
