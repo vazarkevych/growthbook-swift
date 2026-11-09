@@ -75,15 +75,24 @@ public enum IngestEvent: Encodable {
 
 /// Builds the string two identical events must agree on.
 ///
-/// Only the name and the event's own fields go in — deliberately not the attributes. A feature
-/// evaluation carries no unit identity of its own, so including attributes would make every
-/// attribute change look like a new event; the reference SDK draws the line in the same place.
+/// The name and the event's own fields go in, plus `identity` for events that name no unit of
+/// their own. An exposure names the unit it was bucketed on — `hashAttribute` and `hashValue` are
+/// part of its properties — so it needs no help here, and keying it on the whole attribute map
+/// would re-report one assignment every time an unrelated attribute moved. A feature evaluation
+/// names nothing, so without `identity` two people reading the same flag collapse into one event
+/// and the second person is never reported.
+///
 /// Keys are sorted because dictionary ordering is not guaranteed between encodes, and two
 /// serializations of the same evaluation that differ only in key order would never match.
-func ingestDedupeKey<Properties: Encodable>(eventName: String, properties: Properties) -> String? {
+func ingestDedupeKey<Properties: Encodable>(
+    eventName: String,
+    properties: Properties,
+    identity: JSON? = nil
+) -> String? {
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.sortedKeys]
-    guard let data = try? encoder.encode(DedupeKeyInput(eventName: eventName, properties: properties)) else {
+    let input = DedupeKeyInput(eventName: eventName, properties: properties, identity: identity)
+    guard let data = try? encoder.encode(input) else {
         return nil
     }
     return String(data: data, encoding: .utf8)
@@ -92,6 +101,8 @@ func ingestDedupeKey<Properties: Encodable>(eventName: String, properties: Prope
 private struct DedupeKeyInput<Properties: Encodable>: Encodable {
     let eventName: String
     let properties: Properties
+    /// Omitted entirely when absent, so an event that needs no identity keys exactly as before.
+    let identity: JSON?
 }
 
 /// The envelope every ingested event is wrapped in.
@@ -242,7 +253,11 @@ public struct FeatureEvaluatedEvent: Encodable {
     private let properties: Properties
     public let attributes: JSON
 
-    var dedupeKey: String? { ingestDedupeKey(eventName: Self.eventName, properties: properties) }
+    /// Keyed on the attributes as well as the evaluation: feature usage belongs to whoever was
+    /// evaluated, and nothing in the event itself says who that was.
+    var dedupeKey: String? {
+        ingestDedupeKey(eventName: Self.eventName, properties: properties, identity: attributes)
+    }
 
     public func encode(to encoder: Encoder) throws {
         try IngestEnvelope(eventName: Self.eventName, properties: properties, attributes: attributes)

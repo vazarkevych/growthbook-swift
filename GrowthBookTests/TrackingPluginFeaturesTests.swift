@@ -108,18 +108,134 @@ final class TrackingPluginFeaturesTests: XCTestCase {
         XCTAssertEqual(recorder.events.count, 3)
     }
 
-    /// Attributes are deliberately outside the key: a feature evaluation carries no unit identity,
-    /// so keying on them would defeat deduping for any app that updates attributes.
-    func testAttributeChangesDoNotMakeAnEvaluationLookNew() {
+    /// Feature usage belongs to whoever was evaluated, and nothing in the event itself says who
+    /// that was. Two people reading the same flag to the same value are two evaluations, not a
+    /// repeat of one — so the attributes are part of the key.
+    func testADifferentUserReadingTheSameFlagIsReported() {
         let recorder = Recorder()
         let plugin = makePlugin(into: recorder)
         plugin.initialize(clientKey: "sdk-test")
 
-        plugin.onFeatureEvaluated(featureKey: "my-flag", result: featureResult(), attributes: JSON(["plan": "free"]))
-        plugin.onFeatureEvaluated(featureKey: "my-flag", result: featureResult(), attributes: JSON(["plan": "pro"]))
+        plugin.onFeatureEvaluated(featureKey: "my-flag", result: featureResult(), attributes: JSON(["id": "user-A"]))
+        plugin.onFeatureEvaluated(featureKey: "my-flag", result: featureResult(), attributes: JSON(["id": "user-B"]))
+        plugin.close()
+
+        XCTAssertEqual(recorder.events.count, 2,
+                       "The second user's evaluation is dropped before it is ever queued")
+    }
+
+    /// The flip side: the same user re-reading the same flag is still one event. Deduping has to
+    /// keep working, or a flag read on every screen floods the ingestor.
+    func testTheSameUserRereadingTheSameFlagIsStillDeduped() {
+        let recorder = Recorder()
+        let plugin = makePlugin(into: recorder)
+        plugin.initialize(clientKey: "sdk-test")
+
+        for _ in 0..<5 {
+            plugin.onFeatureEvaluated(featureKey: "my-flag", result: featureResult(),
+                                      attributes: JSON(["id": "user-A", "plan": "pro"]))
+        }
         plugin.close()
 
         XCTAssertEqual(recorder.events.count, 1)
+    }
+
+    /// The key is a serialization of a dictionary, and dictionary ordering is not stable between
+    /// encodes. Without sorting, the same user would look like a new one at random.
+    func testAttributeOrderDoesNotSplitTheKey() {
+        let recorder = Recorder()
+        let plugin = makePlugin(into: recorder)
+        plugin.initialize(clientKey: "sdk-test")
+
+        plugin.onFeatureEvaluated(featureKey: "my-flag", result: featureResult(),
+                                  attributes: JSON(["id": "user-A", "plan": "pro", "country": "UA"]))
+        plugin.onFeatureEvaluated(featureKey: "my-flag", result: featureResult(),
+                                  attributes: JSON(["country": "UA", "id": "user-A", "plan": "pro"]))
+        plugin.onFeatureEvaluated(featureKey: "my-flag", result: featureResult(),
+                                  attributes: JSON(["plan": "pro", "country": "UA", "id": "user-A"]))
+        plugin.close()
+
+        XCTAssertEqual(recorder.events.count, 1)
+    }
+
+    /// Nested attributes have to sort too, or an app that nests its user object gets the same
+    /// random re-reporting one level down.
+    func testNestedAttributeOrderDoesNotSplitTheKey() {
+        let recorder = Recorder()
+        let plugin = makePlugin(into: recorder)
+        plugin.initialize(clientKey: "sdk-test")
+
+        plugin.onFeatureEvaluated(featureKey: "my-flag", result: featureResult(),
+                                  attributes: JSON(["user": ["id": "A", "tier": "gold"]]))
+        plugin.onFeatureEvaluated(featureKey: "my-flag", result: featureResult(),
+                                  attributes: JSON(["user": ["tier": "gold", "id": "A"]]))
+        plugin.close()
+
+        XCTAssertEqual(recorder.events.count, 1)
+    }
+
+    /// Exposures are left alone. `hashAttribute` and `hashValue` are already part of an exposure's
+    /// properties, so its identity is the bucketing unit — keying it on the whole attribute map
+    /// would re-report one assignment every time an unrelated attribute moved.
+    func testAnUnrelatedAttributeChangeDoesNotReReportAnExposure() {
+        let recorder = Recorder()
+        let plugin = makePlugin(into: recorder)
+        plugin.initialize(clientKey: "sdk-test")
+
+        let exp = experiment(key: "dedupe-exposure-attrs")
+        plugin.onExperimentViewed(experiment: exp, result: experimentResult(hashValue: "user-A"),
+                                  attributes: JSON(["id": "user-A", "plan": "free"]))
+        plugin.onExperimentViewed(experiment: exp, result: experimentResult(hashValue: "user-A"),
+                                  attributes: JSON(["id": "user-A", "plan": "pro"]))
+        plugin.close()
+
+        XCTAssertEqual(recorder.events.count, 1)
+    }
+
+    /// The whole bug through the public API: one SDK, one plugin, a login. Multi-user support is
+    /// not needed to hit it — `setAttributes` after a user switch is enough.
+    func testSwitchingUserWithSetAttributesReportsBothUsers() {
+        let recorder = Recorder()
+        let plugin = makePlugin(into: recorder)
+
+        let payload = #"{"features":{"paywall":{"defaultValue":true}}}"#.data(using: .utf8)!
+        let sdk = GrowthBookBuilder(
+            apiHost: "https://host.com",
+            clientKey: "sdk-test",
+            attributes: ["id": "user-A"],
+            features: payload,
+            trackingCallback: { _, _ in },
+            backgroundSync: false,
+            ttlSeconds: 60
+        )
+        .setNetworkDispatcher(networkDispatcher: MockNetworkClient(successResponse: nil, error: nil))
+        .addPlugin(plugin)
+        .initializer()
+
+        _ = sdk.isOn(feature: "paywall")
+        sdk.setAttributes(attributes: ["id": "user-B"])
+        _ = sdk.isOn(feature: "paywall")
+
+        plugin.close()
+
+        XCTAssertEqual(recorder.events.count, 2,
+                       "After a login the second user's feature usage is never ingested")
+    }
+
+    /// ...but two bucketing units are still two exposures.
+    func testTwoBucketingUnitsAreTwoExposures() {
+        let recorder = Recorder()
+        let plugin = makePlugin(into: recorder)
+        plugin.initialize(clientKey: "sdk-test")
+
+        let exp = experiment(key: "dedupe-exposure-units")
+        plugin.onExperimentViewed(experiment: exp, result: experimentResult(hashValue: "user-A"),
+                                  attributes: JSON(["id": "user-A"]))
+        plugin.onExperimentViewed(experiment: exp, result: experimentResult(hashValue: "user-B"),
+                                  attributes: JSON(["id": "user-B"]))
+        plugin.close()
+
+        XCTAssertEqual(recorder.events.count, 2)
     }
 
     func testDedupingCanBeTurnedOff() {
