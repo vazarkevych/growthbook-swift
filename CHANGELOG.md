@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.2.0](https://github.com/vazarkevych/growthbook-swift/compare/2.1.0...2.2.0) (2026-11-19)
+
+
+### Features
+
+* add remote saved groups (savedGroupReferencesRemote) ([#201](https://github.com/vazarkevych/growthbook-swift/issues/201)) ([48faebf](https://github.com/vazarkevych/growthbook-swift/commit/48faebf9653862ef8952c2c7717418dd330975ea))
+* resolve saved groups by reference through $savedGroup ([#199](https://github.com/vazarkevych/growthbook-swift/issues/199)) ([c161220](https://github.com/vazarkevych/growthbook-swift/commit/c161220b526ffaa31bc07287ca01e2b87cf4262d))
+
+
+### Bug Fixes
+
+* apply savedGroups from a preloaded payload ([#189](https://github.com/vazarkevych/growthbook-swift/issues/189)) ([45d290e](https://github.com/vazarkevych/growthbook-swift/commit/45d290e3951f6471077392a0cd2b7f34a0d8ea85))
+* avoid quadratic regex when stripping version build metadata ([#204](https://github.com/vazarkevych/growthbook-swift/issues/204)) ([1fe3988](https://github.com/vazarkevych/growthbook-swift/commit/1fe39888453d3e2d983896053bc4f4f5ecf494b1))
+* SSE reconnect exponential backoff and HTTP 200-only retry ([#171](https://github.com/vazarkevych/growthbook-swift/issues/171)) ([a3a6ee2](https://github.com/vazarkevych/growthbook-swift/commit/a3a6ee24b7c75a7b4c0b9e4cffad640e93d8373f))
+
 ## [2.1.0](https://github.com/growthbook/growthbook-swift/compare/2.0.2...2.1.0) (2026-11-18)
 
 
